@@ -1,0 +1,295 @@
+---
+title: "EPL Football Analysis"
+author: "J_T"
+output: html_document
+---
+
+```{r}
+#Installing all required packages
+
+# install.packages ('xlsx')
+# install.packages("Scale")
+# install.packages("gridExtra")
+# install.packages("Scale")
+# install.packages("Lahman")
+# install.packages("plotly")
+
+
+#Loading required libraries
+
+library(tidyselect)
+require(tidyverse)
+require(ggplot2)
+require(compare)
+require("gridExtra")
+require(xlsx)
+require(lattice)
+require(Scale)
+require(MASS)
+require(dplyr)
+library(plotly)
+
+```
+
+
+```{r}
+#Importing the scraped files for all seasons
+
+library(readxl)
+Season_15 <- read_excel("Data Sets/Season_15.xlsx")
+
+library(readxl)
+Season_16 <- read_excel("Data Sets/Season_16.xlsx")
+
+
+library(readxl)
+Season_17 <- read_excel("Data Sets/Season_17.xlsx")
+
+library(readxl)
+Season_18 <- read_excel("Data Sets/Season_18.xlsx")
+
+library(readxl)
+Season_19 <- read_excel("Data Sets/Season_19.xlsx")
+
+
+
+#Combining all seasons together
+
+DS3 <- merge(Season_15,Season_16,all.x=TRUE,all.y=TRUE) %>% arrange(desc(O_Rating))
+DS2 <- merge(DS3,Season_17,all.x=TRUE,all.y=TRUE) %>% arrange(desc(O_Rating))
+DS1 <- merge(DS2,Season_18,all.x=TRUE,all.y=TRUE) %>% arrange(desc(O_Rating))
+
+(Data_Set <- merge(DS1,Season_19,all.x=TRUE,all.y=TRUE)) %>% arrange(desc(O_Rating))
+
+#Few entries for market_value and wage have entries as zero. Changing them to NA to perform na.rm operations
+
+Data_Set$Market_Value[ Data_Set$Market_Value== 0] <- NA
+Data_Set$Wage[ Data_Set$Wage== 0] <- NA
+Data_Set <- Data_Set %>% arrange(desc(O_Rating))
+
+#This final dataset (Data_Set) combines seasons 2015-2019 of FIFA football statistics aggregated to the player level for 15,000 players.
+
+```
+
+ 
+ 
+```{r}
+#Inspecting the dataset
+
+glimpse(Data_Set)
+str(Data_Set)
+summary(Data_Set)
+
+```
+
+#DESCRIPTIVE ANALYTICS
+
+
+```{r}
+
+#For Age
+mean(Data_Set$Age)
+median(Data_Set$Age)
+quantile(Data_Set$Age)
+range(Data_Set$Age)
+sd(Data_Set$Age)
+var(Data_Set$Age)
+hist(Data_Set$Age, col="light blue")
+
+#For Overall_Rating
+mean(Data_Set$O_Rating)
+median(Data_Set$O_Rating)
+quantile(Data_Set$O_Rating)
+range(Data_Set$O_Rating)
+sd(Data_Set$O_Rating)
+var(Data_Set$O_Rating)
+hist(Data_Set$O_Rating, col = "light blue")
+
+#For Wage
+mean(Data_Set$Wage, na.rm = TRUE)
+median(Data_Set$Wage, na.rm = TRUE)
+quantile(Data_Set$Wage, na.rm = TRUE)
+range(Data_Set$Wage, na.rm = TRUE)
+sd(Data_Set$Wage, na.rm = TRUE)
+var(Data_Set$Wage, na.rm = TRUE)
+
+
+ggplot(Data_Set, aes(x=Wage, y=O_Rating)) + geom_boxplot() + scale_x_continuous(name="Wage", labels = scales::comma)
+
+#boxplot(Data_Set$Wage)
+
+```
+
+#Total number of countries, the players represent
+
+```{r}
+
+Data_Set%>%group_by(Nationality)%>%count()%>%arrange(desc(n))
+
+```
+
+#Total number of clubs, the players represent
+
+```{r}
+
+Data_Set%>%group_by(Club)%>%count()%>%arrange(desc(n))
+
+```
+
+#EXPLORATORY ANALYTICS
+
+#Which country produces the players with the highest average current rating?
+```{r}
+(a1 <- Data_Set%>%group_by(Nationality)%>%summarise(overall_rating=mean(O_Rating))%>%arrange(desc(overall_rating)))
+
+(a2 <- Data_Set%>% group_by(Nationality) %>% count())
+
+DF=merge(a1,a2,by="Nationality") %>% arrange(desc(n))%>%head(10)
+
+
+ggplot(DF, aes(x=overall_rating, y=n, color=Nationality))+geom_point() + labs(x="Average Rating",y= "Total Number of players")
+
+```
+
+#Is there a realation between wage and overall rating? 
+```{r}
+#install.packages("scales")
+require(scales)
+require(ggplot2)
+Merde4 <- Data_Set %>% filter(Season==2015)
+ggplot(Season_15, aes(x=O_Rating, y=Wage)) + 
+    geom_point() + scale_y_continuous(name="Wage", labels = scales::comma)
+
+Merde5 <- Data_Set %>% filter(Season==2016)
+ggplot(Merde5, aes(x=O_Rating, y=Wage)) + 
+    geom_point() + scale_y_continuous(name="Wage", labels = scales::comma)
+
+Merde6 <- Data_Set %>% filter(Season==2017)
+ggplot(Merde6, aes(x=O_Rating, y=Wage)) + 
+    geom_point() + scale_y_continuous(name="Wage", labels = scales::comma)
+
+Merde7 <- Data_Set %>% filter(Season==2018)
+ggplot(Merde7, aes(x=O_Rating, y=Wage)) + 
+    geom_point() + scale_y_continuous(name="Wage", labels = scales::comma)
+
+Merde8 <- Data_Set %>% filter(Season==2019)
+ggplot(Merde8, aes(x=O_Rating, y=Wage)) + 
+    geom_point() + scale_y_continuous(name="Wage", labels = scales::comma)
+
+```
+
+#Which position was better paid over the years?
+
+```{r}
+Data_Set
+Pos_Wage <- Data_Set %>% group_by(Position,Season) %>% summarise(Avg_Wage= mean(Wage,na.rm = TRUE), Avg_Market_Value= mean(Market_Value,na.rm=TRUE)) %>% arrange(desc(Avg_Wage))
+
+p <- ggplot(Pos_Wage, aes(Avg_Wage, Avg_Market_Value, color = Position)) +
+  geom_point(aes(frame = Season)) + scale_y_continuous(name="Avg_Market_Value", labels = scales::comma) + scale_x_continuous(name="Avg_Wage", labels = scales::comma)
+  
+p <- p %>% 
+  animation_opts(
+    1000, easing = "elastic", redraw = FALSE
+  )
+
+(p <- ggplotly(p))
+
+```
+
+
+#Have the highest paid players in the league met their potential rating from the previous season with their current rating for the next season? Basically, are the high paid players improving? 
+
+```{r}
+
+#2015-2016
+
+(Players_2015 = Data_Set %>% filter(Season==2015) %>% dplyr::select (Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+(Players_2016=Data_Set %>% filter(Season==2016) %>% dplyr::select(Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+
+
+(Comparison <- merge(Players_2015,Players_2016,by="Name") %>% arrange(desc(Wage.x)))
+
+
+(Top_Earning <- (Comparison %>% rename(OR_2015=O_Rating.x,PR_2015=P_Rating.x,OR_2016=O_Rating.y,PR_2016=P_Rating.y,Wage_2015=Wage.x,Wage_2016=Wage.y) %>% arrange(desc(Wage_2016))))
+
+
+(Top_10 <- Top_Earning %>% head(10))
+
+
+
+ggplot(Top_10, aes(x=PR_2015,y=OR_2016 )) +
+  geom_bar(aes(fill = Name), stat = "identity", position = "dodge")  + expand_limits(x=75,y=50) + labs(x="Potential Rating in 2015", y="Current Rating in 2016") + coord_cartesian(ylim = c(55,100)) + scale_fill_manual(values=c("mediumseagreen", "mediumslateblue","royalblue3", "indianred4","mediumturquoise", "plum4","mediumpurple4","palevioletred3", "mediumspringgreen","mediumvioletred")) 
+
+
+
+#2016-2017
+(Players_2016 = Data_Set %>% filter(Season==2016) %>% dplyr::select (Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+(Players_2017=Data_Set %>% filter(Season==2017) %>% dplyr::select(Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+
+
+(Comparison <- merge(Players_2016,Players_2017,by="Name") %>% arrange(desc(Wage.x)))
+
+
+(Top_Earning <- (Comparison %>% rename(OR_2016=O_Rating.x,PR_2016=P_Rating.x,OR_2017=O_Rating.y,PR_2017=P_Rating.y,Wage_2016=Wage.x,Wage_2017=Wage.y) %>% arrange(desc(Wage_2017))))
+
+
+(Top_10 <- Top_Earning %>% head(10))
+
+
+
+ggplot(Top_10, aes(x=PR_2016,y=OR_2017 )) +
+  geom_bar(aes(fill = Name), stat = "identity", position = "dodge")  + expand_limits(x=75,y=50) + labs(x="Potential Rating in 2016", y="Current Rating in 2017") + coord_cartesian(ylim = c(55,100)) + scale_fill_manual(values=c("mediumseagreen", "mediumslateblue","royalblue3", "indianred4","mediumturquoise", "plum4","mediumpurple4","palevioletred3", "mediumspringgreen","mediumvioletred"))
+
+#2017-2018
+(Players_2017 = Data_Set %>% filter(Season==2017) %>% dplyr::select (Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+(Players_2018=Data_Set %>% filter(Season==2018) %>% dplyr::select(Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+
+
+(Comparison <- merge(Players_2017,Players_2018,by="Name") %>% arrange(desc(Wage.x)))
+
+
+(Top_Earning <- (Comparison %>% rename(OR_2017=O_Rating.x,PR_2017=P_Rating.x,OR_2018=O_Rating.y,PR_2018=P_Rating.y,Wage_2017=Wage.x,Wage_2018=Wage.y) %>% arrange(desc(Wage_2018))))
+
+
+(Top_10 <- Top_Earning %>% head(10))
+
+
+
+ggplot(Top_10, aes(x=PR_2017,y=OR_2018 )) +
+  geom_bar(aes(fill = Name), stat = "identity", position = "dodge")  + expand_limits(x=75,y=50) + labs(x="Potential Rating in 2017", y="Current Rating in 2018") + coord_cartesian(ylim = c(55,100)) + scale_fill_manual(values=c("mediumseagreen", "mediumslateblue","royalblue3", "indianred4","mediumturquoise", "plum4","mediumpurple4","palevioletred3", "mediumspringgreen","mediumvioletred"))
+
+#2018-2019
+(Players_2018 = Data_Set %>% filter(Season==2018) %>% dplyr::select (Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+(Players_2019=Data_Set %>% filter(Season==2019) %>% dplyr::select(Name,O_Rating,P_Rating,Wage) %>% arrange(desc(Wage)))
+
+
+
+(Comparison <- merge(Players_2018,Players_2019,by="Name") %>% arrange(desc(Wage.x)))
+
+
+(Top_Earning <- (Comparison %>% rename(OR_2018=O_Rating.x,PR_2018=P_Rating.x,OR_2019=O_Rating.y,PR_2019=P_Rating.y,Wage_2018=Wage.x,Wage_2019=Wage.y) %>% arrange(desc(Wage_2019))))
+
+
+(Top_10 <- Top_Earning %>% head(10))
+
+
+
+ggplot(Top_10, aes(x=PR_2018,y=OR_2019 )) +
+  geom_bar(aes(fill = Name), stat = "identity", position = "dodge")  + expand_limits(x=75,y=50) + labs(x="Potential Rating in 2018", y="Current Rating in 2019") + coord_cartesian(ylim = c(55,100)) + scale_fill_manual(values=c("mediumseagreen", "mediumslateblue","royalblue3", "indianred4","mediumturquoise", "plum4","mediumpurple4","palevioletred3", "mediumspringgreen","mediumvioletred"))
+
+```                           
+
+
+
+
+
+
+
+

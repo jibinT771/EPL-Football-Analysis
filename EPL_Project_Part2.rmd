@@ -1,0 +1,99 @@
+---
+title: "EPL Football Analysis"
+author: "J_T"
+output: html_document
+---
+
+```{r}
+#Installing required libraries
+# install.packages("tidyverse")
+# install.packages("rvest")
+# install.packages("devtools")
+# install.packages("xlsx")
+# install.packages("leaps")
+
+
+#Loading required libraries
+library(tidyverse)
+library(rvest)
+library(devtools)
+library(xlsx) 
+require(leaps)
+require(lattice)
+
+```
+
+
+
+```{r}
+
+#For predictive part we selected, players who are 27 years now in 2019. Selecting and filtering the same players across seasons from 2015 to 2019 with their age ranging from 23 to 27 years
+
+library(readxl)
+Age_23_15 <- read_excel("Model_Data/Age_23_15.xlsx")
+
+library(readxl)
+Age_24_16 <- read_excel("Model_Data/Age_24_16.xlsx")
+
+library(readxl)
+Age_25_17 <- read_excel("Model_Data/Age_25_17.xlsx")
+
+library(readxl)
+Age_26_18 <- read_excel("Model_Data/Age_26_18.xlsx")
+
+library(readxl)
+Age_27_19 <- read_excel("Model_Data/Age_27_19.xlsx")
+
+DS <- merge(Age_23_15,Age_24_16,all.x=TRUE,all.y=TRUE) %>% arrange(desc(O_Rating))
+DS1 <- merge(DS,Age_25_17,all.x=TRUE,all.y=TRUE) %>% arrange(desc(O_Rating))
+DS2 <- merge(DS1,Age_26_18,all.x=TRUE,all.y=TRUE) %>% arrange(desc(O_Rating))
+(DS3 <- merge(DS2,Age_27_19,all.x=TRUE,all.y=TRUE)) %>% arrange(desc(O_Rating))
+
+```
+
+
+
+
+```{r}
+#Correlation
+(Age_Overall_Rating <- cor(DS3$O_Rating,DS3$Age))
+cor(DS3$O_Rating,DS3$Maturity)
+cor(DS3$O_Rating,DS3$Growth)
+cor(DS3$O_Rating,DS3$Market_Value)
+cor(DS3$P_Rating,DS3$Wage)
+
+#Plotting the correlation
+xyplot(O_Rating~Maturity,data=DS3)
+xyplot(O_Rating~Wage,data=DS3)
+xyplot(O_Rating~Age,data=DS3)
+xyplot(O_Rating~Growth,data=DS3)
+xyplot(O_Rating~Market_Value,data=DS)
+```
+
+
+```{r}
+# Using the leaps package to decide which variables better define the predictive model
+lps=regsubsets(O_Rating~Wage + Maturity + Age + Growth + Market_Value, data=DS3, method='backward')
+plot(lps, scale="adjr2" )
+
+```
+
+
+```{r}
+#Model Building
+#The model can be represented as Overall_Rating as a fucntion of Wage + Maturity + Age + Market_Value 
+mod1 <- lm(O_Rating~Wage+Maturity+Age+Market_Value,data=DS3)
+summary(mod1)
+plot(mod1)
+
+```
+
+```{r}
+#Predicting Overall_Rating on the basis of Age,Market_Value,Wage and Maturity
+Pred_Values=data.frame(Age=28,Market_Value=8950000000,Wage=270000,Maturity=84)
+predict(mod1,Pred_Values)
+
+```
+
+
+

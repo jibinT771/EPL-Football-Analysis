@@ -1,0 +1,226 @@
+---
+title: "Season_15"
+author: "J_T"
+output: html_document
+---
+
+#Using rvest package, www.SoFifa.com was scraped and the dataset for each season begining from 2015 to 2019 was generated with each season consisting of top 3,000 professional soccer players.
+
+
+```{r}
+
+install.packages("tidyverse")
+install.packages("rvest")
+install.packages("devtools")
+install.packages("xlsx")
+
+
+library(tidyverse)
+library(rvest)
+library(devtools)
+library(xlsx) 
+
+
+```
+
+
+
+```{r}
+
+page_num <- 60*c(0:49) #Since one page conatins only 60 players. For 3000 players, 50 pages need to be traversed and scraped.
+
+link= "https://sofifa.com/players?type=all&r=160058&set=true&showCol%5B0%5D=pi&showCol%5B1%5D=ae&showCol%5B2%5D=oa&showCol%5B3%5D=pt&showCol%5B4%5D=bp&showCol%5B5%5D=vl&showCol%5B6%5D=wg&showCol%5B7%5D=ac&showCol%5B8%5D=st&showCol%5B9%5D=po&showCol%5B10%5D=pe&showCol%5B11%5D=cm&showCol%5B12%5D=tg&showCol%5B13%5D=aw&showCol%5B14%5D=dw&showCol%5B15%5D=ir&showCol%5B16%5D=dri&showCol%5B17%5D=def&offset="
+
+
+#Using the lapply function to join the link and page number and then selecting the CSS elements for desired columns to be scraped with functions from rvest package.
+
+ID <- lapply(paste0(link,page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-col-pi.pjax, td.col-pi") %>% 
+                    html_text()
+                })
+Name <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes(".nowrap") %>% 
+                    html_text() 
+                })
+Age <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-ae.pjax , td.col-ae") %>% 
+                    html_text()
+                })
+Nationality <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes('.bp3-text-overflow-ellipsis a[rel="nofollow"][href*="players?"]') %>% html_attr('title')
+                })
+O_Rating <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-sort.pjax, td.col-sort") %>% 
+                    html_text()
+                })
+P_Rating <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-sort.pjax, td.col-pt") %>% 
+                    html_text()
+                })
+
+O_Rating <- unlist(O_Rating)
+P_Rating <- unlist(P_Rating)
+O_Rating <- as.numeric(O_Rating)
+P_Rating <- as.numeric(P_Rating)
+
+#Calculating player growth as Potential rating - Overall rating
+
+Growth =  P_Rating - O_Rating
+
+Club <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes(".transparent+ a") %>% 
+                    html_text()
+                })
+Value <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-vl.pjax, td.col-vl") %>% 
+                    html_text()
+                })
+Wage <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-wg.pjax, td.col-wg") %>% 
+                    html_text()
+                })
+Game_Impact <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-ir.pjax, td.col-ir") %>% 
+                    html_text()
+                })
+Position <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-bp.pjax, td.col-bp") %>% 
+                    html_text()
+                })
+Attack <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-dri.pjax, td.col-dri") %>% 
+                    html_text()
+                })
+Defense <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-def.pjax, td.col-def") %>% 
+                    html_text()
+                })
+GKeeping <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-tg.pjax, td.col-tg") %>% 
+                    html_text()
+                })
+Acceleration <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-ac.pjax, td.col-ac") %>% 
+                    html_text()
+                })
+Stamina <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-st.pjax, td.col-st") %>% 
+                    html_text()
+                  })
+Positioning <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-po.pjax, td.col-po") %>% 
+                    html_text()
+                })
+
+Penalties <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-pe.pjax, td.col-pe") %>% 
+                    html_text()
+                })
+Attacking_WR <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-aw.pjax, td.col-aw") %>% 
+                    html_text()
+                })
+Defense_WR <- lapply(paste0(link, page_num),
+                function(url){
+                  url %>% read_html() %>% 
+                    html_nodes("-.col-dw.pjax, td.col-dw") %>% 
+                    html_text()
+                })
+
+#21 columns were scraped as stored as lists with all player details.
+
+#Unlisting all the scraped columns 
+
+ID <- unlist(ID)
+Name <- unlist(Name)
+Age <- unlist(Age)
+Nationality <- unlist(Nationality)
+O_Rating <- unlist(O_Rating)
+P_Rating <- unlist(P_Rating)
+Club <- unlist(Club)
+Value <- unlist(Value)
+Wage <- unlist(Wage) 
+Game_Impact <- unlist(Game_Impact)
+Position <- unlist(Position)
+Attack <- unlist(Attack)
+Defense <- unlist(Defense)
+Acceleration <- unlist(Acceleration)
+Stamina <- unlist(Stamina)
+Positioning <- unlist(Positioning)
+Penalties <- unlist(Penalties)
+Composure <- unlist(Composure)
+GKeeping <- unlist(GKeeping)
+Attacking_WR <- unlist(Attacking_WR)
+Defense_WR <- unlist(Defense_WR)
+
+#Saving scraped content into a dataframe
+
+(Season_15 <- as.data.frame(cbind(ID,Name,Age,Nationality,O_Rating,P_Rating,Growth,Club,Value,Wage,Game_Impact,Position,Attack,Defense,Acceleration,Stamina,Positioning,Penalties,GKeeping,Attacking_WR,Defense_WR)))
+    
+```
+
+#Performing basic operations to examine the scraped data which is saved in a dataframe 
+
+```{r}
+
+dim(Season_15)
+head(Season_15)
+str(Season_15)
+summary(Season_15)
+
+
+```
+
+#Performing coercion  
+
+```{r}
+
+transform.data.frame(Season_15,ID=as.numeric(ID),Name=as.character(Name),Age=as.numeric(Age),Nationality=as.character(Nationality),O_Rating=as.numeric(O_Rating),P_Rating=as.numeric(P_Rating),Growth=as.numeric(Growth),Club=as.character(Club),Value=as.numeric(Value),Wage=as.numeric(Wage),Game_Impact=as.factor(Game_Impact),Position=as.character(Position),Attack=as.numeric(Attack),Defense=as.numeric(Defense),Acceleration=as.numeric(Acceleration),Stamina=as.numeric(Stamina),Positioning=as.numeric(Positioning),Penalties=as.numeric(Penalties),GKeeping=as.numeric(GKeeping),Attacking_WR=as.numeric(Attacking_WR),Defense_WR=as.numeric(Defense_WR)) 
+
+
+write.xlsx(Season_15,file = "Season_15.xlsx",sheetName = "Season_15")
+
+#Variables Value and wage were tranformed using excel with appropriate currency denominations
+
+
+```
+
+#The datset for Season 2015 with data scraped for 3000 players is saved as Data Sets/Season_15.csv
